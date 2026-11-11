@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ⅳ-2 협업 보드 — 이 상황은 순열일까, 조합일까?</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --ink:#1f2937; --sub:#6b7280; --line:#d1d5db;
+    --blue:#2563eb; --green:#16a34a; --amber:#f59e0b; --hilite:#fef3c7; --indigo:#4f46e5;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕",sans-serif;
+       background:var(--bg);color:var(--ink);min-height:100vh;font-size:16px}
+  button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+  .appbar{background:var(--indigo);color:#fff;display:flex;align-items:center;gap:14px;
+          padding:14px 22px;flex-wrap:wrap}
+  .sq{display:inline-flex;gap:6px}
+  .sq i{width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,.8);display:inline-block}
+  .sq i:last-child{background:rgba(255,255,255,.5)}
+  .appbar h1{font-size:21px;font-weight:800;letter-spacing:-.3px}
+  .bar-sub{margin-left:auto;font-size:15px;opacity:.95}
+
+  .tabs{background:#fff;border-bottom:2px solid var(--line);display:flex;align-items:center;
+        gap:8px;padding:8px 16px;flex-wrap:wrap;position:sticky;top:0;z-index:20}
+  .tabbtn{min-height:48px;padding:8px 18px;border-radius:12px;font-weight:700;color:var(--sub);
+          border:2px solid transparent}
+  .tabbtn.on{background:#eef2ff;color:var(--indigo);border-color:var(--indigo)}
+  .sp{flex:1}
+  .hub{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:var(--sub);
+       text-decoration:none;font-size:14.5px;border-radius:10px}
+  .resetbtn{min-height:44px;padding:8px 16px;border:2px solid var(--line);border-radius:12px;
+            color:var(--sub);font-weight:700;font-size:14.5px;background:#fff}
+
+  main{max-width:1080px;margin:0 auto;padding:20px 18px 130px}
+  .tab{display:none}
+  .tab.on{display:block}
+
+  .grid2{display:grid;grid-template-columns:5fr 7fr;gap:22px;align-items:start}
+  @media (max-width:780px){.grid2{grid-template-columns:1fr}}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 24px;
+         box-shadow:0 2px 8px rgba(15,23,42,.07)}
+  .panel-title{font-size:19px;font-weight:800;color:var(--indigo);margin-bottom:16px}
+  .fl{font-size:14.5px;font-weight:700;color:var(--sub);margin:14px 0 7px}
+  .txt{width:100%;min-height:48px;border:2px solid var(--indigo);border-radius:10px;
+       padding:10px 14px;font-size:16.5px;font-family:inherit;background:#fff;color:var(--ink)}
+  .txt:focus{outline:3px solid #c7d2fe}
+  .togrow{display:flex;gap:12px;flex-wrap:wrap}
+  .tog{min-height:48px;flex:1;min-width:130px;border:2px solid var(--line);border-radius:10px;
+       font-weight:700;color:var(--sub);background:#fff;padding:8px 12px}
+  .tog-comb.on{border-color:var(--green);background:#dcfce7;color:#166534}
+  .tog-perm.on{border-color:var(--blue);background:#dbeafe;color:#1e40af}
+  .primary{display:block;width:100%;min-height:50px;margin-top:18px;background:var(--indigo);
+           color:#fff;font-weight:800;font-size:16.5px;border-radius:12px;padding:10px 16px}
+  .primary:disabled{opacity:.4;cursor:default}
+
+  .sec-title{font-size:19px;font-weight:800;margin:2px 0 14px}
+  .item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 14px 14px 18px;
+        margin-bottom:12px;display:flex;align-items:center;gap:12px;
+        box-shadow:0 2px 6px rgba(15,23,42,.08)}
+  .item-text{font-size:16.5px;font-weight:700;flex:1;line-height:1.4;word-break:keep-all}
+  .chip{display:inline-block;color:#fff;font-size:13.5px;font-weight:800;padding:5px 12px;
+        border-radius:8px;white-space:nowrap}
+  .chip-perm{background:var(--blue)} .chip-comb{background:#15803d}
+  .chip-und{background:var(--sub)}  .chip-ind{background:var(--indigo)}
+  .chip-cond-end{background:var(--blue)} .chip-cond-incl{background:#15803d}
+  .chip-cond-adj{background:var(--indigo)}
+  .x{width:44px;height:44px;border-radius:10px;color:var(--sub);font-size:18px;font-weight:700;
+     flex:none;display:inline-flex;align-items:center;justify-content:center}
+  .x:active{background:#fee2e2;color:#b91c1c}
+  .empty-msg{color:var(--sub);font-size:15px;padding:14px 4px}
+
+  .banner{background:var(--hilite);border:2px solid var(--amber);border-radius:14px;
+          padding:16px 20px;margin-top:22px;line-height:1.55}
+  .banner-t{color:#b45309;font-weight:800;font-size:17px;margin-bottom:4px}
+  .banner-b{font-weight:700;font-size:16.5px;word-break:keep-all}
+  .notice{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;
+          margin-top:16px;color:var(--sub);font-size:15px;line-height:1.6;word-break:keep-all}
+  .notice b{color:var(--ink)}
+
+  .crit{background:#fff;border:2px solid var(--indigo);border-radius:12px;text-align:center;
+        padding:12px 18px;font-size:16.5px;color:var(--indigo);font-weight:700;
+        max-width:560px;margin:0 auto 18px}
+  .tray-wrap{border:2px dashed var(--line);border-radius:14px;padding:12px 14px;background:#fff}
+  .tray-title{font-size:14.5px;font-weight:800;color:var(--sub);margin-bottom:10px}
+  .tray-title .hint{font-size:16px;font-weight:700;margin-left:8px}
+  .tray{display:flex;flex-wrap:wrap;gap:12px;min-height:56px}
+  .tray:empty::after{content:attr(data-empty);color:var(--sub);font-size:14.5px;padding:14px 4px}
+  .tray .bcard{flex:1 1 260px;max-width:380px}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+  @media (max-width:680px){.cols{grid-template-columns:1fr}}
+  .col-h{color:#fff;font-weight:800;font-size:18px;text-align:center;border-radius:12px;
+         padding:13px 10px;margin-bottom:12px}
+  .col-h-perm{background:var(--blue)} .col-h-comb{background:#15803d}
+  .col-body{min-height:130px;border-radius:12px}
+  .col-body:empty{border:2px dashed var(--line);display:flex;align-items:center;justify-content:center}
+  .col-body:empty::after{content:'여기로 분류';color:var(--sub);font-size:14.5px}
+
+  .bcard{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px;
+         box-shadow:0 2px 6px rgba(15,23,42,.1);cursor:pointer;position:relative}
+  .bcard.p0{background:#fef9c3}.bcard.p1{background:#dbeafe}.bcard.p2{background:#dcfce7}.bcard.p3{background:#fce7f3}
+  .bcard.sel{outline:3px solid var(--indigo);outline-offset:1px}
+  .bc-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .bc-text{font-size:16.5px;font-weight:700;line-height:1.4;word-break:keep-all}
+  .selbadge{margin-left:auto;background:var(--indigo);color:#fff;font-size:12.5px;font-weight:800;
+            border-radius:8px;padding:4px 9px}
+  .gsel{border:none;border-radius:8px;height:44px;
+        padding:0 12px;font-size:13.5px;font-weight:800;color:#fff;font-family:inherit;
+        background:var(--sub)}
+  .gsel.z-perm{background:var(--blue)} .gsel.z-comb{background:#15803d}
+
+  .pairzone{border:2px solid var(--amber);border-radius:16px;background:#fffbeb;
+            padding:18px 20px;margin-top:22px}
+  .pz-t{color:#b45309;font-weight:800;font-size:17px;margin-bottom:12px;word-break:keep-all}
+  .pz-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+  .pz-row .hint{color:var(--sub);font-size:14.5px}
+  .pairbtn{min-height:48px;padding:8px 20px;border-radius:12px;background:var(--amber);
+           color:#451a03;font-weight:800;font-size:15.5px}
+  .pairbtn:disabled{opacity:.45;cursor:default}
+  .pair{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+        margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .pcard{border-radius:10px;padding:9px 14px;font-weight:700;font-size:15px;word-break:keep-all}
+  .pc-perm{background:#dbeafe;border:1.5px solid var(--blue);color:#1e40af}
+  .pc-comb{background:#dcfce7;border:1.5px solid var(--green);color:#166534}
+  .pc-und{background:#f3f4f6;border:1.5px solid var(--sub);color:var(--ink)}
+  .parrow{color:#b91c1c;font-size:19px;font-weight:800}
+  .pnote{color:#b45309;font-size:15px;font-weight:800;margin-left:auto;white-space:nowrap}
+  .pz-note{color:var(--sub);font-size:13.5px;margin-top:6px}
+
+  .chipcard{display:block;width:100%;text-align:left;background:#f8fafc;border:2px solid var(--line);
+            border-radius:14px;padding:13px 16px;margin-bottom:12px;box-shadow:0 2px 5px rgba(15,23,42,.06)}
+  .chipcard.sel{border-color:var(--indigo);background:#eef2ff}
+  .cc-ex{display:block;margin-top:8px;font-size:15.5px;font-weight:700;word-break:keep-all}
+  .cc-check{float:right;color:var(--indigo);font-weight:800;font-size:13.5px;display:none}
+  .chipcard.sel .cc-check{display:inline}
+  .small-note{color:var(--sub);font-size:14px;margin-top:12px}
+
+  .panel-ai{border:2px solid var(--indigo)}
+  .ai-rule{height:8px;background:var(--indigo);border-radius:6px;margin-bottom:16px}
+  .prompt-box{border:2px solid var(--indigo);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+  .prompt-box .chip{margin-bottom:8px}
+  .prompt-box textarea{width:100%;border:none;resize:none;font-family:inherit;font-size:16px;
+                       line-height:1.5;color:var(--ink);background:transparent;min-height:52px}
+  .prompt-box textarea:focus{outline:3px solid #c7d2fe}
+  .mock-note{color:#b91c1c;font-size:13.5px;font-weight:700;margin:12px 0 8px}
+  .ai-item{display:flex;align-items:center;gap:10px;border:1.5px solid #c7d2fe;border-radius:12px;
+           padding:8px 8px 8px 14px;margin-bottom:10px;background:#fff}
+  .ai-dot{width:12px;height:12px;border:3px solid var(--indigo);border-radius:50%;flex:none}
+  .ai-text{flex:1;font-size:15.5px;font-weight:700;word-break:keep-all}
+  .mini{min-height:44px;padding:6px 14px;border-radius:10px;background:var(--indigo);color:#fff;
+        font-weight:700;font-size:14px;flex:none}
+  .mini.done{background:#e5e7eb;color:#4b5563}
+  .mini:disabled{cursor:default}
+
+  .fab{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:30;background:#fff;
+       border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 24px rgba(15,23,42,.25);
+       display:flex;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap;justify-content:center;
+       max-width:94vw}
+  .fab[hidden]{display:none}
+  .fab-info{font-size:14px;font-weight:800;color:var(--indigo);padding:0 4px}
+  .fabbtn{min-height:46px;padding:6px 16px;border-radius:12px;border:2px solid var(--line);
+          font-weight:800;font-size:15px;color:var(--sub);background:#fff}
+  .fb-perm{border-color:var(--blue);color:var(--blue)}
+  .fb-comb{border-color:var(--green);color:#15803d}
+
+  #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:40;
+         background:var(--ink);color:#fff;font-size:15px;font-weight:700;border-radius:12px;
+         padding:12px 20px;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw;
+         text-align:center}
+  #toast.on{opacity:1}
+
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .shake{animation:shake .22s 2}
+
+  button,.bcard{-webkit-user-select:none;user-select:none}
+  .tabbtn:active,.fabbtn:active,.bcard:active{transform:scale(.98)}
+  .ai-mock-tag{font-size:13.5px;font-weight:700;color:var(--sub)}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <span class="sq" aria-hidden="true"><i></i><i></i></span>
+  <h1 id="barTitle">협업 보드 · 우리 모둠 상황 만들기</h1>
+  <span class="bar-sub" id="barSub">문제를 내는 사람이 되어 보자</span>
+</header>
+
+<nav class="tabs" aria-label="화면 선택">
+  <button class="tabbtn on" data-tab="t1">① 상황 만들기</button>
+  <button class="tabbtn" data-tab="t2">② 분류 보드</button>
+  <button class="tabbtn" data-tab="t3">③ 난이도 · AI</button>
+  <span class="sp"></span>
+  <a class="hub" href="index.html">허브로</a>
+  <button class="resetbtn" id="btnReset">처음부터</button>
+</nav>
+
+<main>
+  <!-- 탭1: 상황 만들기 -->
+  <section class="tab on" id="t1">
+    <div class="grid2">
+      <div class="panel">
+        <h2 class="panel-title">새 상황 카드</h2>
+        <label class="fl" for="inpText">상황</label>
+        <input id="inpText" class="txt" maxlength="80" placeholder="예) 5명 중 청소 당번 2명 뽑기" autocomplete="off">
+        <div class="fl" id="lblTog">순서를 따지나요?</div>
+        <div class="togrow" role="radiogroup" aria-labelledby="lblTog">
+          <button class="tog tog-perm" data-action="tog" data-val="perm" role="radio" aria-checked="false">예(순열)</button>
+          <button class="tog tog-comb" data-action="tog" data-val="comb" role="radio" aria-checked="false">아니오(조합)</button>
+        </div>
+        <button class="primary" data-action="add">올리기</button>
+      </div>
+      <div>
+        <h2 class="sec-title">모둠이 올린 상황</h2>
+        <div id="cardList1"></div>
+      </div>
+    </div>
+    <div class="banner">
+      <div class="banner-t">만든 직후 스스로 점검:</div>
+      <div class="banner-b">여기서 순서를 바꾸면 다른 경우인가?&ensp;→ 그렇다면 순열, 아니면 조합</div>
+    </div>
+    <div class="notice">※ 서로 다른 대상에서 중복 없이 뽑는 상황으로 (직접 나열·수형도로 확인 가능한 수준)</div>
+  </section>
+
+  <!-- 탭2: 분류 보드 -->
+  <section class="tab" id="t2">
+    <div class="crit">기준: <b>이 상황은 순서를 따져야 하는가?</b></div>
+    <div class="tray-wrap">
+      <div class="tray-title">미분류 트레이 <span class="hint">— 카드를 탭해 선택하고, 아래 이동 버튼으로 보내요 (모둠 태그도 카드에서)</span></div>
+      <div class="tray" id="tray" data-empty="올린 카드가 없어요 — ① 상황 만들기에서 카드를 올려요"></div>
+    </div>
+    <div class="cols">
+      <div>
+        <div class="col-h col-h-perm">순열 (순서 따짐)</div>
+        <div class="col-body" id="colPerm"></div>
+      </div>
+      <div>
+        <div class="col-h col-h-comb">조합 (순서 안 따짐)</div>
+        <div class="col-body" id="colComb"></div>
+      </div>
+    </div>
+    <div class="pairzone">
+      <div class="pz-t">경계사례 — 조건 하나만 바꾸면 순열↔조합이 뒤집힌다</div>
+      <div class="pz-row">
+        <span class="hint" id="pairHint">카드 2장을 선택하세요 (0/2)</span>
+        <button class="pairbtn" id="btnPair" data-action="pair" disabled>경계사례 쌍 만들기</button>
+      </div>
+      <div id="pairList"></div>
+      <div class="pz-note">※ 앱은 판정을 채점하지 않아요 — 무엇이 순서를 가르는지, 근거는 모둠 토의로 정해요.</div>
+    </div>
+  </section>
+
+  <!-- 탭3: 난이도 + AI -->
+  <section class="tab" id="t3">
+    <div class="grid2">
+      <div class="panel">
+        <h2 class="panel-title">난이도 올린 상황 만들기</h2>
+        <button class="chipcard" data-action="chip" data-key="end">
+          <span class="cc-check">✓ 선택됨</span>
+          <span class="chip chip-cond-end">양 끝자리 조건</span>
+          <span class="cc-ex">5명을 한 줄로 세우되 반장은 맨 앞, 부반장은 맨 뒤</span>
+        </button>
+        <button class="chipcard" data-action="chip" data-key="incl">
+          <span class="cc-check">✓ 선택됨</span>
+          <span class="chip chip-cond-incl">반드시 포함</span>
+          <span class="cc-ex">6명 중 3명 뽑되 나는 꼭 포함</span>
+        </button>
+        <button class="chipcard" data-action="chip" data-key="adj">
+          <span class="cc-check">✓ 선택됨</span>
+          <span class="chip chip-cond-adj">이웃 조건</span>
+          <span class="cc-ex">4명을 세우되 짝꿍 둘은 이웃</span>
+        </button>
+        <label class="fl" for="inpHard">내 상황 (위에서 조건 칩 하나를 골라 태그로)</label>
+        <input id="inpHard" class="txt" maxlength="80" placeholder="예) 4명을 세우되 단짝 둘은 이웃하게" autocomplete="off">
+        <button class="primary" data-action="addhard">보드로 올리기</button>
+        <div class="small-note">※ 직접 나열·수형도로 확인 가능한 작은 수로</div>
+      </div>
+      <div class="panel panel-ai">
+        <div class="ai-rule" aria-hidden="true"></div>
+        <h2 class="panel-title">AI 소재 탐색 <span class="ai-mock-tag">(오프라인 모의 도구)</span></h2>
+        <div class="prompt-box">
+          <span class="chip chip-ind">프롬프트</span>
+          <textarea id="inpPrompt" rows="2" aria-label="AI 탐색 프롬프트"></textarea>
+        </div>
+        <button class="primary" id="btnAi" data-action="ai">탐색</button>
+        <div class="mock-note" id="mockNote" hidden>(모의 응답 — 실제 AI가 아닙니다) · 준비된 소재 풀에서 무작위 3개를 보여 줍니다</div>
+        <div id="aiList"></div>
+      </div>
+    </div>
+    <div class="banner">
+      <div class="banner-t">AI가 찾아 준 상황도 그대로 쓰지 않는다</div>
+      <div class="banner-b">→ '순서를 따져야 하는가'는 학생이 직접 판단하고 자기 말로 다시 설명</div>
+    </div>
+    <div class="notice"><b>※ 미성년 학생 — 실명·민감한 개인정보는 입력하지 않기</b><br>(학교 정책과 보호자 동의 범위 안에서만 사용)</div>
+  </section>
+</main>
+
+<div class="fab" id="fab" hidden>
+  <span class="fab-info" id="fabInfo"></span>
+  <button class="fabbtn fb-perm" data-action="move" data-zone="perm">→ 순열</button>
+  <button class="fabbtn fb-comb" data-action="move" data-zone="comb">→ 조합</button>
+  <button class="fabbtn" data-action="move" data-zone="tray">→ 미분류</button>
+  <button class="fabbtn" data-action="clearsel">해제</button>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+var KEY='johap.iv2.state';
+var DEF_PROMPT='학교 행사에서 사람을 뽑거나 순서를 정하는 장면 3개만 찾아 줘';
+var TAG={perm:'순열',comb:'조합'};
+var COND={end:'양 끝자리 조건',incl:'반드시 포함',adj:'이웃 조건'};
+var AI_POOL=[
+  '체육대회 계주 순서 정하기','축제 부스 담당 2명 뽑기','동아리 발표 순서 정하기',
+  '급식 배식 순서 정하기','도서부 당번 2명 뽑기','모둠 발표 1·2번 정하기',
+  '학급 게시판에 붙일 사진 3장 고르기','수학여행 조장 1명·기록 1명 정하기','합창 대회 무대 입장 순서 정하기'
+];
+var mem=null; // localStorage 불가(사파리 사생활 모드 등) 시 메모리 대체
+var gen=0;    // 리셋 세대 카운터 — doAi 타이머 경합 방지
+function stGet(){ try{ return localStorage.getItem(KEY); }catch(e){ return mem; } }
+function stSet(v){ try{ localStorage.setItem(KEY,v); }catch(e){ mem=v; } }
+function stDel(){ try{ localStorage.removeItem(KEY); }catch(e){} mem=null; }
+
+function seedState(){
+  return { v:1, tab:'t1', nextId:4, ai:{prompt:DEF_PROMPT, sugg:[]}, pairs:[], cards:[
+    {id:1,text:'5명 중 당번 2명 뽑기',   tag:'comb',cond:null,group:null,zone:'tray',src:'seed'},
+    {id:2,text:'5명을 한 줄로 세우기',   tag:'perm',cond:null,group:null,zone:'tray',src:'seed'},
+    {id:3,text:'서로 다른 간식 4개 중 2개 고르기', tag:'comb',cond:null,group:null,zone:'tray',src:'seed'}
+  ]};
+}
+function loadState(){
+  var raw=stGet();
+  if(raw){
+    try{
+      var s=JSON.parse(raw);
+      if(s && s.v===1 && Array.isArray(s.cards) && Array.isArray(s.pairs) && s.ai && typeof s.ai==='object'){
+        if(['t1','t2','t3'].indexOf(s.tab)<0) s.tab='t1';
+        s.cards=s.cards.filter(function(c){return c && typeof c.id==='number' && typeof c.text==='string';});
+        s.pairs=s.pairs.filter(function(p){return p && typeof p.id==='number';});
+        if(typeof s.nextId!=='number'||!isFinite(s.nextId)){ s.nextId=1+s.cards.concat(s.pairs).reduce(function(m,x){return Math.max(m,x.id);},0); }
+        if(!Array.isArray(s.ai.sugg)) s.ai.sugg=[];
+        return s;
+      }
+    }catch(e){}
+  }
+  var f=seedState(); stSet(JSON.stringify(f)); return f;
+}
+var state=loadState();
+var selection=[];      // 보드 선택(최대 2, 저장 안 함)
+var togVal=null, chipVal=null;
+
+function save(){ stSet(JSON.stringify(state)); }
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"']/g,function(m){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
+function byId(id){ for(var i=0;i<state.cards.length;i++) if(state.cards[i].id===id) return state.cards[i]; return null; }
+
+var toastTimer;
+function toast(msg){
+  var t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove('on'); },2200);
+}
+function shake(el){ el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+/* ---------- 렌더 ---------- */
+var BAR={
+  t1:{t:'협업 보드 · 우리 모둠 상황 만들기', s:'문제를 내는 사람이 되어 보자'},
+  t2:{t:'협업 보드 · 상황 카드 분류',       s:'순서를 따지면 순열 · 안 따지면 조합'},
+  t3:{t:'수업용 웹앱 · 난이도 올리기 + AI 소재 탐색', s:'더 나아가기'}
+};
+function tagChip(c){
+  var k=c.tag||'und', l=c.tag?TAG[c.tag]:'미정';
+  return '<span class="chip chip-'+k+'">'+l+'</span>';
+}
+function condChip(c){
+  return c.cond?'<span class="chip chip-cond-'+c.cond+'">'+COND[c.cond]+'</span>':'';
+}
+function renderTab1(){
+  var h='';
+  state.cards.forEach(function(c){
+    h+='<div class="item">'+tagChip(c)+condChip(c)+
+       '<span class="item-text">'+esc(c.text)+'</span>'+
+       '<button class="x" data-action="del" data-id="'+c.id+'" aria-label="카드 삭제: '+esc(c.text)+'">✕</button></div>';
+  });
+  $('cardList1').innerHTML=h||'<div class="empty-msg">아직 올린 상황이 없어요 — 왼쪽에서 만들어 올려요.</div>';
+}
+function gselHtml(c){
+  var o='<option value=""'+(c.group?'':' selected')+'>모둠 –</option>';
+  for(var i=1;i<=6;i++) o+='<option value="'+i+'"'+(c.group===i?' selected':'')+'>모둠 '+i+'</option>';
+  return '<select class="gsel z-'+c.zone+'" data-id="'+c.id+'" aria-label="모둠 태그 선택">'+o+'</select>';
+}
+function bcardHtml(c){
+  var sel=selection.indexOf(c.id)>=0;
+  var chips=(c.zone==='tray'?tagChip(c):'')+condChip(c);
+  return '<div class="bcard p'+(c.id%4)+(sel?' sel':'')+'" data-action="selcard" data-id="'+c.id+
+    '" role="button" tabindex="0" aria-pressed="'+sel+'">'+
+    '<div class="bc-top">'+gselHtml(c)+chips+(sel?'<span class="selbadge">✓ 선택</span>':'')+'</div>'+
+    '<div class="bc-text">'+esc(c.text)+'</div></div>';
+}
+function renderTab2(){
+  var tray='',perm='',comb='';
+  state.cards.forEach(function(c){
+    var h=bcardHtml(c);
+    if(c.zone==='perm') perm+=h; else if(c.zone==='comb') comb+=h; else tray+=h;
+  });
+  $('tray').innerHTML=tray; $('colPerm').innerHTML=perm; $('colComb').innerHTML=comb;
+
+  var ph='';
+  state.pairs.forEach(function(p){
+    ph+='<div class="pair"><span class="pcard pc-'+(p.aTag||'und')+'">'+esc(p.aText)+' ('+(p.aTag?TAG[p.aTag]:'미정')+')</span>'+
+        '<span class="parrow" aria-hidden="true">↔</span>'+
+        '<span class="pcard pc-'+(p.bTag||'und')+'">'+esc(p.bText)+' ('+(p.bTag?TAG[p.bTag]:'미정')+')</span>'+
+        '<span class="pnote">'+esc(p.note||'무엇이 순서를 가르는지 토의로!')+'</span>'+
+        '<button class="x" data-action="delpair" data-id="'+p.id+'" aria-label="경계사례 쌍 삭제">✕</button></div>';
+  });
+  $('pairList').innerHTML=ph;
+  $('pairHint').textContent='카드 2장을 선택하세요 ('+selection.length+'/2)';
+  $('btnPair').disabled=(selection.length!==2);
+
+  var fab=$('fab');
+  if(state.tab==='t2'&&selection.length>0){
+    fab.hidden=false;
+    $('fabInfo').textContent=selection.length+'장 선택';
+  }else fab.hidden=true;
+}
+function renderTab3(){
+  document.querySelectorAll('.chipcard').forEach(function(b){
+    var on=b.getAttribute('data-key')===chipVal;
+    b.classList.toggle('sel',on); b.setAttribute('aria-pressed',on);
+  });
+  var sugg=state.ai.sugg||[];
+  $('mockNote').hidden=(sugg.length===0);
+  var h='';
+  sugg.forEach(function(s,i){
+    var sent=state.cards.some(function(c){ return c.text===s; });
+    h+='<div class="ai-item"><span class="ai-dot" aria-hidden="true"></span>'+
+       '<span class="ai-text">'+esc(s)+'</span>'+
+       '<button class="mini'+(sent?' done':'')+'" data-action="send" data-i="'+i+'"'+(sent?' disabled':'')+'>'+
+       (sent?'보냈어요 ✓':'보드로 보내기')+'</button></div>';
+  });
+  $('aiList').innerHTML=h;
+}
+function renderBar(){
+  $('barTitle').textContent=BAR[state.tab].t;
+  $('barSub').textContent=BAR[state.tab].s;
+  document.querySelectorAll('.tabbtn').forEach(function(b){
+    var on=b.getAttribute('data-tab')===state.tab;
+    b.classList.toggle('on',on);
+    if(on) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.tab').forEach(function(s){
+    s.classList.toggle('on',s.id===state.tab);
+  });
+}
+function renderData(){ renderTab1(); renderTab2(); renderTab3(); }
+function show(tab){
+  state.tab=tab; selection=[]; save(); renderBar(); renderData(); window.scrollTo(0,0);
+}
+
+/* ---------- 동작 ---------- */
+function addCard(text,tag,cond,src){
+  state.cards.push({id:state.nextId++,text:text,tag:tag,cond:cond,group:null,zone:'tray',src:src});
+  save(); renderData();
+}
+function doAdd(){
+  var inp=$('inpText'), text=inp.value.trim();
+  if(!text){ shake(inp); toast('상황을 먼저 적어 주세요'); return; }
+  if(!togVal){ toast('순서를 따지는지 먼저 골라 주세요 — 예(순열) / 아니오(조합)'); return; }
+  addCard(text,togVal,null,'user');
+  inp.value=''; setTog(null);
+  toast('올렸어요! ② 분류 보드의 미분류 트레이에서 만나요');
+}
+function setTog(v){
+  togVal=v;
+  document.querySelectorAll('.tog').forEach(function(b){
+    var on=b.getAttribute('data-val')===v;
+    b.classList.toggle('on',on); b.setAttribute('aria-checked',on);
+  });
+}
+function doAddHard(){
+  var inp=$('inpHard'), text=inp.value.trim();
+  if(!chipVal){ toast('조건 칩을 하나 선택해 주세요'); return; }
+  if(!text){ shake(inp); toast('내 상황을 먼저 적어 주세요'); return; }
+  addCard(text,null,chipVal,'hard');
+  inp.value=''; chipVal=null; renderTab3();
+  toast('보드로 올렸어요 — 순열·조합 판정은 ② 분류 보드에서 직접!');
+}
+function doSelect(id){
+  var i=selection.indexOf(id);
+  if(i>=0) selection.splice(i,1);
+  else{ selection.push(id); if(selection.length>2) selection.shift(); }
+  renderTab2();
+}
+function doMove(zone){
+  if(!selection.length) return;
+  selection.forEach(function(id){
+    var c=byId(id); if(!c) return;
+    c.zone=zone;
+    if(zone==='perm'||zone==='comb') c.tag=zone; // 옮긴 곳 = 모둠의 판정
+  });
+  selection=[]; save(); renderData();
+  toast(zone==='tray'?'미분류로 되돌렸어요':('\''+(zone==='perm'?'순열':'조합')+'\'으로 분류했어요 — 근거를 말로!'));
+}
+function doPair(){
+  if(selection.length!==2) return;
+  var a=byId(selection[0]), b=byId(selection[1]);
+  if(!a||!b) return;
+  if(a.tag!=='perm'&&b.tag==='perm'){ var t=a; a=b; b=t; }
+  var note=(a.tag==='perm'&&b.tag==='comb')?'바뀐 건 \'순서\' 하나':'무엇이 순서를 가르는지 토의로!';
+  state.pairs.push({id:state.nextId++,aText:a.text,aTag:a.tag,bText:b.text,bTag:b.tag,note:note});
+  selection=[]; save(); renderData();
+  toast('경계사례 쌍을 만들었어요 — 무엇이 순서를 가르는지 설명해 봐요');
+}
+function doAi(){
+  var btn=$('btnAi'); if(btn.disabled) return;
+  state.ai.prompt=$('inpPrompt').value;
+  btn.disabled=true; btn.textContent='탐색 중…';
+  var g=gen;
+  setTimeout(function(){
+    btn.disabled=false; btn.textContent='탐색';
+    if(g!==gen) return;
+    var pool=AI_POOL.slice();
+    for(var i=pool.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
+    state.ai.sugg=pool.slice(0,3);
+    save(); renderTab3();
+    toast('소재 3개를 찾았어요 — 모의 응답');
+  },600);
+}
+function doSend(i){
+  var s=(state.ai.sugg||[])[i]; if(!s) return;
+  if(state.cards.some(function(c){ return c.text===s; })) return;
+  addCard(s,null,null,'ai');
+  toast('보드에 추가했어요 — \'순서를 따져야 하는가\'는 직접 판단!');
+}
+function doDel(id){
+  if(!window.confirm('이 카드를 지울까요?')) return;
+  state.cards=state.cards.filter(function(c){ return c.id!==id; });
+  var i=selection.indexOf(id); if(i>=0) selection.splice(i,1);
+  save(); renderData(); toast('카드를 삭제했어요');
+}
+function doDelPair(id){
+  state.pairs=state.pairs.filter(function(p){ return p.id!==id; });
+  save(); renderTab2(); toast('경계사례 쌍을 삭제했어요');
+}
+function doReset(){
+  if(!window.confirm('모든 카드와 경계사례를 지우고 처음부터 시작할까요?')) return;
+  gen++;
+  stDel(); state=seedState(); selection=[]; togVal=null; chipVal=null;
+  $('inpText').value=''; $('inpHard').value=''; $('inpPrompt').value=DEF_PROMPT;
+  setTog(null); save(); show('t1'); toast('처음부터 시작해요 — 예시 카드 3장을 다시 채웠어요');
+}
+
+/* ---------- 이벤트 ---------- */
+document.addEventListener('click',function(e){
+  if(e.target.closest('.gsel')) return;            // 셀렉트 탭은 선택 토글 아님
+  var tb=e.target.closest('.tabbtn');
+  if(tb){ show(tb.getAttribute('data-tab')); return; }
+  var el=e.target.closest('[data-action]');
+  if(!el) return;
+  var act=el.getAttribute('data-action');
+  if(act==='tog') setTog(togVal===el.getAttribute('data-val')?null:el.getAttribute('data-val'));
+  else if(act==='add') doAdd();
+  else if(act==='del') doDel(+el.getAttribute('data-id'));
+  else if(act==='selcard') doSelect(+el.getAttribute('data-id'));
+  else if(act==='move') doMove(el.getAttribute('data-zone'));
+  else if(act==='clearsel'){ selection=[]; renderTab2(); }
+  else if(act==='pair') doPair();
+  else if(act==='delpair') doDelPair(+el.getAttribute('data-id'));
+  else if(act==='chip'){ var k=el.getAttribute('data-key'); chipVal=(chipVal===k?null:k); renderTab3(); }
+  else if(act==='addhard') doAddHard();
+  else if(act==='ai') doAi();
+  else if(act==='send') doSend(+el.getAttribute('data-i'));
+});
+document.addEventListener('keydown',function(e){
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('[data-action][role="button"]')){
+    e.preventDefault(); e.target.click();
+  }
+});
+document.addEventListener('change',function(e){
+  var s=e.target.closest?e.target.closest('.gsel'):null;
+  if(!s) return;
+  var c=byId(+s.getAttribute('data-id')); if(!c) return;
+  c.group=s.value?+s.value:null; save();
+});
+$('inpPrompt').addEventListener('input',function(){ state.ai.prompt=this.value; save(); });
+$('inpText').addEventListener('keydown',function(e){ if(e.isComposing||e.keyCode===229) return; if(e.key==='Enter') doAdd(); });
+$('inpHard').addEventListener('keydown',function(e){ if(e.isComposing||e.keyCode===229) return; if(e.key==='Enter') doAddHard(); });
+$('btnReset').addEventListener('click',doReset);
+window.addEventListener('storage',function(e){
+  if(e.key===KEY){ state=loadState(); selection=[]; renderBar(); renderData(); }
+});
+
+/* ---------- 시작 ---------- */
+$('inpPrompt').value=state.ai.prompt||DEF_PROMPT;
+renderBar(); renderData();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>공 뽑기 시뮬레이션 — Ⅳ-1 조합</title>
+<style>
+:root{
+  --bg:#f1f5f9; --ink:#1f2937; --sub:#6b7280; --line:#d1d5db;
+  --blue:#2563eb; --green:#16a34a; --amber:#f59e0b; --hilite:#fef3c7; --indigo:#4f46e5;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;
+  touch-action:manipulation; min-height:100vh;
+}
+button{font-family:inherit; cursor:pointer; touch-action:manipulation;}
+/* ---------- 앱바 ---------- */
+#appbar{
+  background:var(--blue); color:#fff; display:flex; align-items:center;
+  justify-content:space-between; padding:10px 18px; gap:12px; min-height:56px;
+  transition:background .3s;
+}
+#appbar.indigo{background:var(--indigo);}
+.ab-left{display:flex; align-items:center; gap:10px; min-width:0;}
+.abball{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px; border-radius:50%; background:var(--c);
+  color:#fff; font-size:15px; font-weight:700; box-shadow:0 1px 2px rgba(0,0,0,.25);
+}
+#ab-title{font-size:21px; margin:0; font-weight:800; white-space:nowrap;}
+.ab-right{font-size:15px; font-weight:600; opacity:.95; text-align:right;}
+/* ---------- 스테퍼 ---------- */
+#stepper{
+  display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+  padding:8px 14px; background:#fff; border-bottom:1px solid var(--line);
+}
+.step-chip{
+  min-height:44px; padding:6px 13px; border-radius:22px; border:1.5px solid var(--line);
+  background:#fff; color:var(--sub); font-size:15px; font-weight:700;
+  display:inline-flex; align-items:center; gap:5px;
+}
+.step-chip.done{border-color:#15803d; color:#15803d; background:#f0fdf4;}
+.step-chip.cur{background:var(--blue); border-color:var(--blue); color:#fff;}
+.step-chip.cur.indigo-cur{background:var(--indigo); border-color:var(--indigo);}
+.step-chip .chk{font-size:13px;}
+#stepper .hub{
+  margin-left:auto; display:inline-flex; align-items:center; min-height:44px;
+  padding:0 14px; color:var(--sub); text-decoration:none; font-size:14.5px; border-radius:10px;
+}
+#btnReset{
+  min-height:44px; padding:6px 14px; border-radius:10px;
+  border:1.5px solid var(--line); background:#fff; color:var(--sub); font-size:14px; font-weight:700;
+}
+/* ---------- 공통 레이아웃 ---------- */
+#main{max-width:1000px; margin:0 auto; padding:16px 16px 60px;}
+.card{
+  background:#fff; border:1px solid var(--line); border-radius:16px;
+  padding:18px 20px; margin-bottom:14px; box-shadow:0 2px 5px rgba(31,41,55,.06);
+}
+.pagehead{font-size:23px; font-weight:800; margin:4px 0 12px;}
+.center{text-align:center;}
+.sub{color:var(--sub); font-size:15px;}
+.chip{
+  display:inline-block; padding:6px 14px; border-radius:10px; font-weight:800;
+  font-size:16px; margin-bottom:8px; color:#fff;
+}
+.chip.green{background:#15803d;}
+.chip.amber{background:var(--hilite); color:#b45309; border:1.5px solid var(--amber);}
+.btn{
+  min-height:48px; padding:8px 22px; border-radius:12px; border:none;
+  font-size:18px; font-weight:800; color:#fff; background:var(--blue);
+  box-shadow:0 2px 4px rgba(0,0,0,.12);
+}
+.btn.green{background:#15803d;}
+.btn.indigo{background:var(--indigo);}
+.btn.outline{background:#fff; color:var(--blue); border:2px solid var(--blue);}
+.btn.big{font-size:20px; padding:10px 30px;}
+.btn:disabled{opacity:.45; cursor:default;}
+.btnrow{display:flex; gap:14px; justify-content:center; margin:16px 0 6px; flex-wrap:wrap;}
+.banner{
+  border-radius:14px; padding:14px 20px; margin-bottom:14px; border:2px solid var(--amber);
+  background:var(--hilite);
+}
+.banner .banner-kicker{color:#b45309; font-weight:800; font-size:16px; margin-bottom:6px;}
+.banner .banner-big{font-size:24px; font-weight:800;}
+.banner .banner-sub{color:#4b5563; font-size:15px; margin-top:4px;}
+.banner.greenb{border-color:var(--green); background:#f0fdf4; color:#15803d;
+  font-size:21px; font-weight:800; text-align:center; padding:18px;}
+.keybanner{
+  border:2px solid var(--amber); background:var(--hilite); border-radius:14px;
+  padding:14px 20px; margin:14px 0; font-size:20px; font-weight:800; color:#9a3412;
+}
+.keybanner .kb2{color:var(--ink); margin-top:4px;}
+/* ---------- 공 ---------- */
+.ball{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:var(--s,56px); height:var(--s,56px); border-radius:50%;
+  background:var(--c,#999); color:#fff; font-weight:700;
+  font-size:calc(var(--s,56px)*.52); position:relative; border:none; padding:0;
+  box-shadow:0 2px 4px rgba(0,0,0,.18); flex:none;
+}
+.ball::after{
+  content:''; position:absolute; top:12%; left:15%; width:24%; height:24%;
+  background:rgba(255,255,255,.95); border-radius:50%;
+}
+button.ball.selring{outline:3px solid var(--ink); outline-offset:3px;}
+.ballrow{display:flex; gap:26px; justify-content:center; padding:14px 0; flex-wrap:wrap;}
+.ballrow .ball.picked{outline:4px solid var(--ink); outline-offset:4px;}
+.resrow{display:flex; gap:8px; justify-content:center; align-items:center; min-height:52px;
+  font-size:26px; font-weight:800; color:var(--sub);}
+/* ---------- 활동1 스트립 ---------- */
+.striprow{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:8px;}
+.stripballs{display:flex; gap:10px;}
+.striparrow{font-size:24px; color:var(--sub); font-weight:800;}
+.preview{
+  display:flex; align-items:center; gap:6px; border:2px solid var(--blue); background:#eff6ff;
+  border-radius:12px; padding:8px 14px; font-size:22px; font-weight:800; min-height:52px;
+}
+.preview .slot{min-width:34px; text-align:center; color:var(--sub);}
+.countbadge{
+  margin-left:auto; border:2px solid var(--amber); background:var(--hilite);
+  border-radius:12px; padding:6px 14px; text-align:center; font-size:14px; color:#4b5563; font-weight:700;
+}
+.countbadge b{font-size:20px; color:#b45309;}
+/* ---------- 보드 ---------- */
+.boardwrap{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;}
+.boardgrid{
+  display:grid; grid-template-columns:40px repeat(5,72px); grid-auto-rows:auto;
+  gap:8px; align-items:center; justify-items:center; margin:0 auto;
+}
+.bcell{width:100%;}
+.headc,.headr{display:flex; align-items:center; justify-content:center;}
+.cellbox{
+  width:72px; height:60px; border-radius:12px; background:#fff; border:1.5px solid #e2e8f0;
+  display:flex; align-items:center; justify-content:center; position:relative; padding:0;
+}
+.cellbox .mini{display:flex; gap:3px;}
+.cellbox:not(.found):not(.diag) .mini{opacity:.28;}
+.cellbox.found{border-color:#cbd5e1;}
+.cellbox .cellchk{
+  position:absolute; top:-7px; right:-5px; width:20px; height:20px; border-radius:50%;
+  background:var(--green); color:#fff; font-size:12px; font-weight:800;
+  display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.2);
+}
+.cellbox.diag{background:#e5e7eb; border-color:#e5e7eb; color:#9ca3af; font-size:20px; font-weight:800;}
+.cellbox.sel2{outline:3px dashed var(--blue); outline-offset:2px;}
+.sidecol{display:flex; flex-direction:column; gap:12px; min-width:190px; flex:1;}
+.axisnote{line-height:1.6; color:#4b5563; font-size:16px;}
+.notecard{
+  border:2px solid var(--blue); background:#dbeafe; border-radius:14px; padding:14px 16px;
+  font-size:18px; line-height:1.5; color:#1e40af;
+}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.shake{animation:shake .3s ease 2;}
+/* ---------- 활동1-2 묶음 ---------- */
+.a2wrap{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;}
+.grouppanel{flex:1; min-width:250px;}
+.gphead{font-size:19px; font-weight:800; color:#15803d; margin-bottom:8px;}
+.glist{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.gcard{
+  border:2px solid var(--gb,#94a3b8); background:var(--gg,#fff); border-radius:12px;
+  padding:8px 10px; display:flex; align-items:center; justify-content:center; gap:6px;
+  font-size:20px; font-weight:800;
+}
+/* ---------- 활동2 ---------- */
+.a3merge{display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content:center;}
+.mergeleft{display:flex; flex-direction:column; gap:14px; transition:opacity .5s, transform .5s;}
+.mergeleft.tomerge{opacity:.25; transform:translateX(30px) scale(.9);}
+.paircard,.setcard{
+  border:1.5px solid var(--line); border-radius:14px; background:#fff; padding:12px 20px;
+  display:flex; align-items:center; gap:6px; font-size:24px; font-weight:800;
+  box-shadow:0 2px 4px rgba(31,41,55,.08);
+}
+.setcard{border:2.5px solid var(--green); background:#f0fdf4; color:#15803d;}
+.ghost{
+  border:2px dashed var(--line); border-radius:14px; padding:22px 34px; color:var(--sub);
+  font-size:26px; font-weight:800;
+}
+.factbadge{
+  border:2px solid var(--amber); background:var(--hilite); border-radius:14px;
+  padding:10px 16px; text-align:center; color:#92400e; font-weight:800; font-size:16px;
+}
+.factbadge b{display:block; font-size:24px; color:#b45309; margin-top:2px;}
+.formula{font-size:24px; font-weight:800; letter-spacing:.5px;}
+.formula .mc{color:var(--green);}
+.mf sub{font-size:.6em;}
+.whycard{
+  border:1.5px solid var(--line); border-radius:14px; padding:14px 18px; margin-top:14px;
+  background:#f8fafc;
+}
+.whycard b{font-size:20px;}
+.whyans{margin-top:8px; font-size:18px; line-height:1.6; color:#374151;}
+.blue-t{color:var(--blue); font-weight:700;}
+/* ---------- 활동3 ---------- */
+.pav{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:var(--s,34px); height:var(--s,34px); border-radius:50%; background:var(--c,#999);
+  color:#fff; font-weight:800; font-size:calc(var(--s,34px)*.5); flex:none;
+  box-shadow:0 1px 3px rgba(0,0,0,.15); position:relative;
+}
+.pav::after{content:''; position:absolute; top:12%; left:15%; width:22%; height:22%;
+  background:rgba(255,255,255,.9); border-radius:50%;}
+.prow{display:flex; gap:22px; align-items:center; flex-wrap:wrap; margin:6px 0 12px;}
+.permgrid{display:flex; flex-wrap:wrap; gap:7px; margin:12px 0; transition:opacity .4s;}
+.permgrid.dim{opacity:.4;}
+.permcard{
+  border:1.5px solid var(--line); border-radius:10px; background:#fff;
+  padding:5px 8px; display:flex; gap:3px; align-items:center;
+  animation:pop .3s both;
+}
+@keyframes pop{from{opacity:0; transform:scale(.6);} to{opacity:1; transform:scale(1);}}
+.grouprow{display:flex; gap:12px; flex-wrap:wrap; margin:10px 0;}
+.groupcard{
+  border:2px solid var(--green); border-radius:14px; background:#fff; padding:10px 14px;
+  min-width:150px; text-align:center; box-shadow:0 2px 4px rgba(31,41,55,.08);
+}
+.groupcard .gtitle{font-weight:800; color:#15803d; font-size:16px; margin-bottom:6px;}
+.groupcard .gballs{display:flex; align-items:center; justify-content:center; gap:5px; font-size:20px; font-weight:800;}
+button.groupcard{font-size:inherit; color:inherit; cursor:pointer;}
+.groupcard.gfirst{background:#dcfce7;}
+.groupcard .taphint{display:block; margin-top:6px; font-size:15px; color:#15803d; font-weight:700;}
+.orderrow{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0;}
+.ordercard{
+  border:2px solid var(--indigo); border-radius:12px; background:#fff; padding:8px 12px;
+  display:flex; gap:4px; align-items:center; animation:pop .3s both;
+}
+.discover{
+  border:2px solid var(--amber); background:var(--hilite); border-radius:14px;
+  padding:14px 18px; margin-top:12px; font-size:19px; font-weight:800; color:#9a3412;
+  width:100%; text-align:left;
+}
+.discover .dans{margin-top:8px; color:var(--ink); font-size:20px;}
+.discover .dans .mc{color:var(--green);}
+.green-t{color:#15803d; font-weight:800; font-size:20px; margin:14px 0 4px;}
+/* ---------- 활동4 ---------- */
+.peoplerow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:10px 0;}
+.personbtn{
+  background:none; border:none; padding:6px; display:flex; flex-direction:column;
+  align-items:center; gap:4px; min-width:70px; border-radius:12px;
+}
+.personbtn .pchk{height:22px; font-size:22px; font-weight:900; color:var(--green); visibility:hidden;}
+.personbtn.on .pchk{visibility:visible;}
+.personbtn .plabel{font-size:19px; font-weight:800;}
+.stagecard{
+  background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px 18px;
+  margin-bottom:10px; display:flex; gap:14px; align-items:center;
+  box-shadow:0 2px 5px rgba(31,41,55,.06);
+}
+.stagecard.locked{opacity:.6;}
+.numbub{
+  width:34px; height:34px; border-radius:50%; background:var(--blue); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:17px; flex:none;
+}
+.stagebody{flex:1;}
+.stagebody .stitle{color:var(--sub); font-size:15px; margin-bottom:3px;}
+.explorer .exhead{font-size:18px; font-weight:800; margin-bottom:8px;}
+.explorer select{
+  font-size:18px; min-height:44px; min-width:64px; padding:6px 10px; border-radius:10px;
+  border:1.5px solid var(--line); background:#fff; font-family:inherit;
+}
+.exrow{display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+.exout{margin-top:12px; font-size:20px; font-weight:800; line-height:1.8;}
+.exout .mc{color:var(--green);}
+/* ---------- 마무리 ---------- */
+.bigformula{text-align:center; padding:28px 20px;}
+.huge{font-size:40px; font-weight:800;}
+.huge .mc{color:var(--green);}
+.subformula{margin-top:14px; font-size:20px; color:#4b5563; font-weight:700;}
+.flowchips{display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin:16px 0;}
+.fchip{
+  border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:10px 16px;
+  font-size:17px; font-weight:800; box-shadow:0 1px 3px rgba(31,41,55,.08);
+}
+.farrow{font-size:20px; color:var(--sub); font-weight:800;}
+.taskcard input{
+  font-size:22px; font-weight:800; width:120px; min-height:48px; padding:6px 12px;
+  border:2px solid var(--line); border-radius:10px; text-align:center; font-family:inherit;
+}
+.taskrow{display:flex; gap:12px; align-items:center; margin-top:10px; flex-wrap:wrap;}
+.anshint{margin-top:10px; font-size:16px; font-weight:700; color:#b45309;}
+.successbanner{
+  margin-top:12px; border:2px solid var(--green); background:#f0fdf4; color:#15803d;
+  border-radius:12px; padding:14px 18px; font-size:21px; font-weight:800;
+}
+.gatebox{text-align:center; padding:40px 20px;}
+.gatebox p{font-size:19px; font-weight:700; color:var(--sub);}
+/* ---------- 토스트 ---------- */
+#toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
+  background:var(--ink); color:#fff; border-radius:12px; padding:12px 20px;
+  font-size:16px; font-weight:700; opacity:0; pointer-events:none;
+  transition:opacity .25s; z-index:50; max-width:90vw; text-align:center;
+}
+#toast.show{opacity:.95;}
+/* ---------- 인터랙션 공통 ---------- */
+button,.ball,.pav,.cellbox{-webkit-user-select:none;user-select:none;}
+.btn:active,.step-chip:active,.cellbox:active,.tabbtn:active{transform:scale(.97);filter:brightness(.95)}
+#board2 .cellbox.found:not(.grouped){box-shadow:0 2px 3px rgba(0,0,0,.15);}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:760px){
+  .boardgrid{grid-template-columns:34px repeat(5,58px); gap:6px;}
+  .cellbox{width:58px; height:50px;}
+  .huge{font-size:30px;}
+  .pagehead{font-size:20px;}
+  #ab-title{font-size:18px;}
+  .ab-right{font-size:13px;}
+}
+</style>
+</head>
+<body>
+<header id="appbar">
+  <div class="ab-left">
+    <span class="abball" style="--c:#dc2626">①</span>
+    <span class="abball" style="--c:#2563eb">④</span>
+    <h1 id="ab-title">공 뽑기 시뮬레이션</h1>
+  </div>
+  <div class="ab-right" id="ab-sub"></div>
+</header>
+<nav id="stepper" aria-label="단계 이동"></nav>
+<main id="main"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+var LS_KEY = 'johap.iv1.progress';
+var BALL = ['#dc2626','#b45309','#15803d','#2563eb','#7c3aed'];
+var BLBL = ['①','②','③','④','⑤'];
+var PCOL = ['#1d4ed8','#047857','#c2410c','#6d28d9','#be185d','#0f766e'];
+var PLBL = ['가','나','다','라','마','바'];
+var GCOL = [
+  {bg:'#dcfce7', bd:'#16a34a'},
+  {bg:'#dbeafe', bd:'#2563eb'},
+  {bg:'#fce7f3', bd:'#db2777'},
+  {bg:'#fef3c7', bd:'#d97706'},
+  {bg:'#ede9fe', bd:'#7c3aed'}
+];
+var STEP_NAMES = ['도입','활동1-1','활동1-2','활동2','활동3','활동4','마무리'];
+var STEP_SUBS = [
+  '경우의 수 · 도입',
+  '활동1 · 화면 1 · 두 공을 클릭해 순서쌍 찾기',
+  '활동1 · 화면 2 · 같은 상황끼리 클릭해 묶기',
+  '활동2 · 왜 2가 아니라 2!?',
+  '활동3 · 4명 중 3명 — 이번엔 3개!',
+  '활동4 · 점프',
+  '마무리'
+];
+
+/* ===== 수학 생성 로직 (검산값의 원천 — 하드코딩 아님) ===== */
+function permFactors(n,r){ var a=[]; for(var i=0;i<r;i++) a.push(n-i); return a; }
+function perm(n,r){ return permFactors(n,r).reduce(function(p,v){return p*v;},1); }
+function fact(r){ return perm(r,r); }
+function comb(n,r){ return perm(n,r)/fact(r); }
+function permutations(arr,k){
+  var out=[];
+  (function go(cur,rest){
+    if(cur.length===k){ out.push(cur.slice()); return; }
+    for(var i=0;i<rest.length;i++){
+      go(cur.concat([rest[i]]), rest.slice(0,i).concat(rest.slice(i+1)));
+    }
+  })([],arr);
+  return out;
+}
+function combinations(arr,k){
+  var out=[];
+  (function go(start,cur){
+    if(cur.length===k){ out.push(cur.slice()); return; }
+    for(var i=start;i<arr.length;i++) go(i+1,cur.concat([arr[i]]));
+  })(0,[]);
+  return out;
+}
+
+/* ===== 수식 표기 (앱 내 통일: HTML sub) ===== */
+function fP(n,r){ return '<span class="mf"><sub>'+n+'</sub>P<sub>'+r+'</sub></span>'; }
+function fC(n,r){ return '<span class="mf mc"><sub>'+n+'</sub>C<sub>'+r+'</sub></span>'; }
+
+/* ===== 상태 ===== */
+function defaultState(){
+  return {
+    step:0,
+    intro:{drawn:false},
+    a1:{found:[]},
+    a2:{groups:[]},
+    a3:{merged:false, why:false},
+    a4:{stage:0, disc:false},
+    a5:{sel:[], opened:0},
+    fin:{solved:false}
+  };
+}
+function sanitize(o){
+  var d = defaultState();
+  if(!o || typeof o!=='object') return d;
+  if(typeof o.step==='number' && o.step>=0 && o.step<=6) d.step = Math.floor(o.step);
+  if(o.intro && o.intro.drawn===true) d.intro.drawn = true;
+  if(o.a1 && Array.isArray(o.a1.found)){
+    d.a1.found = o.a1.found.filter(function(k){
+      var m = /^([1-5])-([1-5])$/.exec(String(k));
+      return m && m[1]!==m[2];
+    }).filter(function(k,i,a){ return a.indexOf(k)===i; }).slice(0,20);
+  }
+  if(o.a2 && Array.isArray(o.a2.groups)){
+    d.a2.groups = o.a2.groups.filter(function(k){
+      var m = /^([1-5])-([1-5])$/.exec(String(k));
+      return m && Number(m[1])<Number(m[2]);
+    }).filter(function(k,i,a){ return a.indexOf(k)===i; }).slice(0,10);
+  }
+  if(o.a3){ d.a3.merged = o.a3.merged===true; d.a3.why = o.a3.why===true; }
+  if(o.a4){
+    if(typeof o.a4.stage==='number') d.a4.stage = Math.max(0,Math.min(3,Math.floor(o.a4.stage)));
+    d.a4.disc = o.a4.disc===true;
+  }
+  if(o.a5){
+    if(Array.isArray(o.a5.sel)){
+      d.a5.sel = o.a5.sel.filter(function(v){ return Number.isInteger(v)&&v>=0&&v<=5; })
+        .filter(function(v,i,a){ return a.indexOf(v)===i; }).slice(0,3);
+    }
+    if(typeof o.a5.opened==='number') d.a5.opened = Math.max(0,Math.min(3,Math.floor(o.a5.opened)));
+  }
+  if(o.fin && o.fin.solved===true) d.fin.solved = true;
+  return d;
+}
+function load(){
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    return sanitize(raw ? JSON.parse(raw) : null);
+  }catch(e){ return defaultState(); }
+}
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){ /* 저장 불가 환경: 무시 */ }
+}
+var S = load();
+
+/* 비영속(화면 임시) 상태 */
+var introOrder = [0,1,2,3,4];
+var strip1 = {p1:null, p2:null};
+var sel2cell = null;
+var animBusy = false;
+var a2hintShown = false;
+
+/* ===== 유틸 ===== */
+function el(id){ return document.getElementById(id); }
+var toastTimer = null;
+function toast(msg){
+  var t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+function shakeEl(node){
+  if(!node) return;
+  node.classList.remove('shake');
+  void node.offsetWidth;
+  node.classList.add('shake');
+}
+var pendingTimers = [];
+function later(fn,ms){ pendingTimers.push(setTimeout(fn,ms)); }
+function cancelTimers(){ pendingTimers.forEach(clearTimeout); pendingTimers = []; animBusy = false; }
+function ballSpan(i,size,aria){
+  var a = aria ? ' role="img" aria-label="공 '+(i+1)+'"' : ' aria-hidden="true"';
+  return '<span class="ball" style="--c:'+BALL[i]+';--s:'+size+'px"'+a+'>'+BLBL[i]+'</span>';
+}
+function ballBtn(i,size,cls){
+  return '<button type="button" class="ball '+(cls||'')+'" data-i="'+i+'" style="--c:'+BALL[i]+';--s:'+size+'px" aria-label="공 '+(i+1)+'">'+BLBL[i]+'</button>';
+}
+function pav(i,size,aria){
+  var a = aria ? ' role="img" aria-label="'+PLBL[i]+'"' : ' aria-hidden="true"';
+  return '<span class="pav" style="--c:'+PCOL[i]+';--s:'+size+'px"'+a+'>'+PLBL[i]+'</span>';
+}
+
+/* ===== 완료 판정 ===== */
+function stepDone(i){
+  switch(i){
+    case 0: return S.intro.drawn;
+    case 1: return S.a1.found.length === perm(5,2);       /* 20 */
+    case 2: return S.a2.groups.length === comb(5,2);      /* 10 */
+    case 3: return S.a3.merged && S.a3.why;
+    case 4: return S.a4.stage>=3 && S.a4.disc;
+    case 5: return S.a5.opened===3;
+    case 6: return S.fin.solved;
+  }
+  return false;
+}
+
+/* ===== 렌더 ===== */
+function renderAppbar(){
+  var bar = el('appbar');
+  var indigo = (S.step===4);
+  bar.classList.toggle('indigo', indigo);
+  el('ab-title').textContent = indigo ? '뽑기 시뮬레이션' : '공 뽑기 시뮬레이션';
+  el('ab-sub').textContent = STEP_SUBS[S.step];
+}
+function renderStepper(){
+  var h = '';
+  for(var i=0;i<7;i++){
+    var cls = 'step-chip' + (i===S.step?' cur':'') + (stepDone(i)?' done':'') + (i===S.step&&S.step===4?' indigo-cur':'');
+    h += '<button type="button" class="'+cls+'" data-step="'+i+'"'+(i===S.step?' aria-current="step"':'')+'>'
+       + (stepDone(i)?'<span class="chk" role="img" aria-label="완료">✓</span>':'') + STEP_NAMES[i] + '</button>';
+  }
+  h += '<a class="hub" href="index.html">허브로</a>';
+  h += '<button type="button" id="btnReset">처음부터</button>';
+  var nav = el('stepper');
+  nav.innerHTML = h;
+  Array.prototype.forEach.call(nav.querySelectorAll('.step-chip'), function(b){
+    b.addEventListener('click', function(){ goStep(Number(b.dataset.step)); });
+  });
+  el('btnReset').addEventListener('click', function(){
+    cancelTimers();
+    if(confirm('처음부터 다시 시작할까요? 저장된 진행이 모두 지워집니다.')){
+      try{ localStorage.removeItem(LS_KEY); }catch(e){}
+      S = defaultState();
+      strip1 = {p1:null,p2:null}; sel2cell = null;
+      renderAll();
+    }
+  });
+}
+function goStep(i){
+  cancelTimers();
+  S.step = i; save();
+  strip1 = {p1:null,p2:null}; sel2cell = null;
+  renderAll();
+  window.scrollTo(0,0);
+}
+function renderAll(){
+  renderAppbar();
+  renderStepper();
+  var m = el('main');
+  switch(S.step){
+    case 0: m.innerHTML = html0(); bind0(); break;
+    case 1: m.innerHTML = html1(); bind1(); break;
+    case 2: m.innerHTML = html2(); bind2(); break;
+    case 3: m.innerHTML = html3(); bind3(); break;
+    case 4: m.innerHTML = html4(); bind4(); break;
+    case 5: m.innerHTML = html5(); bind5(); break;
+    case 6: m.innerHTML = html6(); bind6(); break;
+  }
+}
+
+/* ===================== 0. 도입 ===================== */
+function html0(){
+  var balls = introOrder.map(function(i){ return ballBtn(i,76,'introball'); }).join('');
+  return ''
+  +'<section class="card">'
+  +'  <h2 class="pagehead center">서로 다른 공 5개 중 2개를 뽑습니다</h2>'
+  +'  <div class="ballrow" id="introBalls">'+balls+'</div>'
+  +'  <div class="btnrow">'
+  +'    <button type="button" id="btnDraw" class="btn green big">2개 뽑기</button>'
+  +'    <button type="button" id="btnShuffle" class="btn outline big">다시 섞기</button>'
+  +'  </div>'
+  +'  <div class="center sub">뽑은 결과</div>'
+  +'  <div class="resrow" id="drawRes"><span class="sub">아직 뽑지 않았어요</span></div>'
+  +'</section>'
+  +'<section class="banner">'
+  +'  <div class="banner-kicker">오늘의 도착 과제</div>'
+  +'  <div class="banner-big">6명 중 위원 3명을 뽑는 경우의 수는 몇 가지일까?</div>'
+  +'  <div class="banner-sub">지금은 못 풀어도 좋아요 — 두 계단을 오르면 스스로 풀 수 있어요.</div>'
+  +'</section>';
+}
+function bind0(){
+  el('btnDraw').addEventListener('click', function(){
+    if(animBusy) return;
+    animBusy = true;
+    var a = Math.floor(Math.random()*5);
+    var b = Math.floor(Math.random()*5);
+    while(b===a) b = Math.floor(Math.random()*5);
+    var ballsWrap = el('introBalls');
+    var btns = ballsWrap.querySelectorAll('.introball');
+    var res = el('drawRes');
+    res.innerHTML = '';
+    function hi(idx,on){
+      Array.prototype.forEach.call(btns, function(bt){
+        if(Number(bt.dataset.i)===idx) bt.classList.toggle('picked', on);
+      });
+    }
+    hi(a,true);
+    later(function(){
+      res.innerHTML = '(&nbsp;'+ballSpan(a,44,true);
+      hi(a,false); hi(b,true);
+    }, 550);
+    later(function(){
+      res.innerHTML = '(&nbsp;'+ballSpan(a,44,true)+'&nbsp;,&nbsp;'+ballSpan(b,44,true)+'&nbsp;)';
+      hi(b,false);
+      S.intro.drawn = true; save();
+      renderStepper();
+      animBusy = false;
+    }, 1150);
+  });
+  el('btnShuffle').addEventListener('click', function(){
+    if(animBusy) return;
+    for(var i=introOrder.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t = introOrder[i]; introOrder[i]=introOrder[j]; introOrder[j]=t;
+    }
+    el('introBalls').innerHTML = introOrder.map(function(i){ return ballBtn(i,76,'introball'); }).join('');
+    el('drawRes').innerHTML = '<span class="sub">아직 뽑지 않았어요</span>';
+  });
+}
+
+/* ===================== 보드 공통 ===================== */
+function pairMini(f,s){
+  return '<span class="mini">'+ballSpan(f,24)+ballSpan(s,24)+'</span>';
+}
+function boardHtml(mode){ /* mode: 1(순서쌍 찾기) | 2(묶기) */
+  var groupOf = {};
+  if(mode===2){
+    S.a2.groups.forEach(function(k,gi){
+      var p = k.split('-');
+      groupOf[p[0]+'-'+p[1]] = gi;
+      groupOf[p[1]+'-'+p[0]] = gi;
+    });
+  }
+  var h = '<div class="boardgrid" id="board'+mode+'">';
+  h += '<div class="bcell"></div>';
+  for(var c=0;c<5;c++) h += '<div class="bcell headc">'+ballSpan(c,30)+'</div>';
+  for(var r=0;r<5;r++){
+    h += '<div class="bcell headr">'+ballSpan(r,30)+'</div>';
+    for(var c2=0;c2<5;c2++){
+      if(r===c2){ h += '<div class="cellbox diag" aria-hidden="true">✕</div>'; continue; }
+      var key = (r+1)+'-'+(c2+1);
+      var found = S.a1.found.indexOf(key)>=0;
+      var style = '';
+      var extra = '';
+      if(mode===2 && groupOf.hasOwnProperty(key)){
+        var gcol = GCOL[groupOf[key]%5];
+        style = ' style="background:'+gcol.bg+';border-color:'+gcol.bd+';border-width:2px"';
+        extra = ' grouped';
+      }
+      if(mode===2){
+        h += '<button type="button" class="cellbox found'+extra+'" data-key="'+key+'"'+style
+           +' aria-label="순서쌍 '+(r+1)+' 다음 '+(c2+1)+'">'
+           + pairMini(r,c2) + '</button>';
+      }else{
+        h += '<div class="cellbox'+(found?' found':'')+'" id="c1-'+key+'">'
+           + pairMini(r,c2) + (found?'<span class="cellchk">✓</span>':'') + '</div>';
+      }
+    }
+  }
+  h += '</div>';
+  return h;
+}
+
+/* ===================== 1. 활동1 화면1 ===================== */
+function html1(){
+  var total = perm(5,2); /* 20 */
+  var n = S.a1.found.length;
+  var complete = (n===total);
+  var stripBalls = [0,1,2,3,4].map(function(i){ return ballBtn(i,56,'sball'); }).join('');
+  var h = ''
+  +'<h2 class="pagehead">공과 공을 순서대로 클릭 → (첫째, 둘째) 순서쌍</h2>'
+  +'<section class="card">'
+  +'  <div class="sub">두 공을 순서대로 클릭</div>'
+  +'  <div class="striprow">'
+  +'    <div class="stripballs" id="stripBalls">'+stripBalls+'</div>'
+  +'    <span class="striparrow" aria-hidden="true">→</span>'
+  +'    <div class="preview" id="prevBox">(&nbsp;<span class="slot" id="slot1">?</span>&nbsp;,&nbsp;<span class="slot" id="slot2">?</span>&nbsp;)</div>'
+  +'    <button type="button" id="btnAdd" class="btn green">담기</button>'
+  +'    <div class="countbadge" aria-live="polite">찾은 순서쌍<br><b id="cnt1">'+n+'</b> / '+total+'</div>'
+  +'  </div>'
+  +'</section>'
+  +'<div class="boardwrap">'
+  +   boardHtml(1)
+  +'  <aside class="sidecol">'
+  +'    <div class="axisnote sub">가로 = 두 번째<br>세로 = 첫 번째</div>'
+  +'    <div class="notecard">(①,②) 와 (②,①) 은<br><b>서로 다른 칸!</b></div>'
+  +'  </aside>'
+  +'</div>';
+  if(complete){
+    h += '<section class="keybanner"><b>순서까지 세면 = '+total+'가지 ('+fP(5,2)+')</b> — 몇 칸인지는 직접!</section>'
+       + '<div class="btnrow"><button type="button" id="go2" class="btn big">활동1 · 화면 2로 →</button></div>';
+  }
+  return h;
+}
+function bind1(){
+  var total = perm(5,2);
+  function updateStrip(){
+    el('slot1').innerHTML = strip1.p1===null ? '?' : ballSpan(strip1.p1,30,true);
+    el('slot2').innerHTML = strip1.p2===null ? '?' : ballSpan(strip1.p2,30,true);
+    Array.prototype.forEach.call(document.querySelectorAll('#stripBalls .sball'), function(b){
+      var i = Number(b.dataset.i);
+      b.classList.toggle('selring', i===strip1.p1 || i===strip1.p2);
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#stripBalls .sball'), function(b){
+    b.addEventListener('click', function(){
+      var i = Number(b.dataset.i);
+      if(strip1.p1===null){ strip1.p1 = i; }
+      else if(strip1.p2===null){
+        if(i===strip1.p1){ toast('서로 다른 두 공을 골라요'); shakeEl(el('prevBox')); return; }
+        strip1.p2 = i;
+      }else{
+        strip1.p1 = i; strip1.p2 = null;
+      }
+      updateStrip();
+    });
+  });
+  el('btnAdd').addEventListener('click', function(){
+    if(strip1.p1===null || strip1.p2===null){
+      toast('두 공을 순서대로 골라 주세요'); shakeEl(el('prevBox')); return;
+    }
+    var key = (strip1.p1+1)+'-'+(strip1.p2+1);
+    if(S.a1.found.indexOf(key)>=0){
+      toast('이미 찾았어요');
+      strip1 = {p1:null,p2:null}; updateStrip(); return;
+    }
+    S.a1.found.push(key); save();
+    var cell = el('c1-'+key);
+    if(cell){
+      cell.classList.add('found');
+      cell.insertAdjacentHTML('beforeend','<span class="cellchk">✓</span>');
+    }
+    el('cnt1').textContent = S.a1.found.length;
+    strip1 = {p1:null,p2:null}; updateStrip();
+    if(S.a1.found.length===total){
+      renderAll();
+      var kb = document.querySelector('.keybanner');
+      if(kb) kb.scrollIntoView({behavior:'smooth'});
+    }
+    else renderStepper();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#board1 .cellbox'), function(c){
+    c.addEventListener('click', function(){ toast('위의 공 스트립에서 두 공을 골라 담아요'); });
+  });
+  var go2 = el('go2');
+  if(go2) go2.addEventListener('click', function(){ goStep(2); });
+}
+
+/* ===================== 2. 활동1 화면2 ===================== */
+function html2(){
+  var total20 = perm(5,2), total10 = comb(5,2);
+  if(S.a1.found.length !== total20){
+    return '<section class="card gatebox">'
+      +'<p>이 화면은 화면 1의 보드 '+total20+'칸을 모두 완성한 뒤에 열려요.<br>먼저 순서쌍을 직접 찾아 보세요.</p>'
+      +'<button type="button" id="goBack1" class="btn big">활동1 · 화면 1로 가기</button>'
+      +'</section>';
+  }
+  var n = S.a2.groups.length;
+  var complete = (n===total10);
+  var glist = S.a2.groups.map(function(k,gi){
+    var p = k.split('-').map(Number);
+    var gc = GCOL[gi%5];
+    return '<div class="gcard" style="--gb:'+gc.bd+';--gg:'+gc.bg+'">{ '
+      + ballSpan(p[0]-1,26,true)+' , '+ballSpan(p[1]-1,26,true)+' }</div>';
+  }).join('');
+  var h = ''
+  +'<h2 class="pagehead">순서만 다른 두 칸을 클릭 → 한 묶음! ('+total20+'칸 → '+total10+'묶음)</h2>'
+  +'<div class="a2wrap">'
+  +  boardHtml(2)
+  +'  <section class="grouppanel">'
+  +'    <div class="gphead">묶음 <span id="cnt2">'+n+'</span> / '+total10+'</div>'
+  +'    <div class="glist">'+glist+'</div>'
+  +'  </section>'
+  +'</div>';
+  if(complete){
+    h += '<section class="keybanner">순서만 다른 두 칸 = 한 묶음 → '+total20+'칸이 '+total10+'묶음'
+       + '<div class="kb2">5개 중 2개 뽑기 = 묶음의 개수 세기 = '+total10+'</div></section>'
+       + '<div class="btnrow"><button type="button" id="go3" class="btn big">활동2로 →</button></div>';
+  }
+  return h;
+}
+function bind2(){
+  var back = el('goBack1');
+  if(back){ back.addEventListener('click', function(){ goStep(1); }); return; }
+  var total10 = comb(5,2);
+  if(!a2hintShown && S.a2.groups.length < total10){
+    a2hintShown = true;
+    toast('보드에서 (①,②)와 (②,①)처럼 순서만 다른 두 칸을 차례로 탭!');
+  }
+  var grouped = {};
+  S.a2.groups.forEach(function(k){
+    var p = k.split('-');
+    grouped[p[0]+'-'+p[1]] = true; grouped[p[1]+'-'+p[0]] = true;
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#board2 .cellbox.found'), function(cell){
+    cell.addEventListener('click', function(){
+      var key = cell.dataset.key;
+      if(grouped[key]){ toast('이미 묶었어요'); return; }
+      if(sel2cell===null){
+        sel2cell = key;
+        cell.classList.add('sel2');
+        return;
+      }
+      if(sel2cell===key){
+        sel2cell = null; cell.classList.remove('sel2'); return;
+      }
+      var a = sel2cell.split('-').map(Number);
+      var b = key.split('-').map(Number);
+      var prev = document.querySelector('#board2 .cellbox[data-key="'+sel2cell+'"]');
+      if(a[0]===b[1] && a[1]===b[0]){
+        var lo = Math.min(a[0],a[1]), hi = Math.max(a[0],a[1]);
+        S.a2.groups.push(lo+'-'+hi); save();
+        sel2cell = null;
+        renderAll();
+        if(S.a2.groups.length<total10) toast('한 묶음! {'+BLBL[lo-1]+','+BLBL[hi-1]+'}');
+      }else{
+        shakeEl(cell); shakeEl(prev);
+        toast('순서만 다른 두 칸을 골라요');
+        sel2cell = null;
+        if(prev) prev.classList.remove('sel2');
+      }
+    });
+  });
+  var go3 = el('go3');
+  if(go3) go3.addEventListener('click', function(){ goStep(3); });
+}
+
+/* ===================== 3. 활동2 ===================== */
+function html3(){
+  var merged = S.a3.merged;
+  var right = merged
+    ? '<div class="setcard">{ '+ballSpan(0,34)+' , '+ballSpan(1,34)+' }</div>'
+    : '<div class="ghost">?</div>';
+  var badge = merged
+    ? '<div class="factbadge">줄 세우는 법<b>2! = '+fact(2)+'</b></div>'
+    : '';
+  var formulaBlock = merged
+    ? '<div class="formula">'+fP(5,2)+' = '+perm(5,2)+' &nbsp;→&nbsp; '+perm(5,2)+' ÷ 2! = '+comb(5,2)+' = '+fC(5,2)+'</div>'
+    : '<div class="sub center">먼저 두 카드를 묶어 보세요 — 그러면 식이 열려요.</div>';
+  var whyBody = S.a3.why
+    ? '<div class="whyans">→ 그 2는 한 묶음(2개)을 줄 세운 가짓수 2! 이다.<br>'
+      +'<span class="blue-t">지금은 2!=2라 헷갈린다. 3개를 뽑아 보면 분명해질 거예요. (활동3)</span></div>'
+    : '<div class="sub">탭해서 생각 확인</div>';
+  return ''
+  +'<div class="chip green">왜 2가 아니라 2! ?</div>'
+  +'<h2 class="pagehead">한 묶음(2개)을 줄 세우는 방법은?</h2>'
+  +'<section class="card a3merge">'
+  +'  <div class="mergeleft" id="mleft">'
+  +'    <div class="paircard">(&nbsp;'+ballSpan(0,34)+'&nbsp;,&nbsp;'+ballSpan(1,34)+'&nbsp;)</div>'
+  +'    <div class="paircard">(&nbsp;'+ballSpan(1,34)+'&nbsp;,&nbsp;'+ballSpan(0,34)+'&nbsp;)</div>'
+  +'  </div>'
+  +   (merged
+        ? '<span class="striparrow" style="color:var(--green);font-size:30px">→</span>'
+        : '<button type="button" id="btnMerge" class="btn green big">묶으면 →</button>')
+  +'  <div class="mergeright">'+right+'</div>'
+  +   badge
+  +'</section>'
+  +'<section class="card">'
+  +   formulaBlock
+  +'  <button type="button" class="whycard" id="whyCard" style="width:100%;text-align:left">'
+  +'    <b>왜 \'2\'가 아니라 \'2!\'로 나눌까?</b>'
+  +     whyBody
+  +'  </button>'
+  +'</section>';
+}
+function bind3(){
+  var bm = el('btnMerge');
+  if(bm) bm.addEventListener('click', function(){
+    if(animBusy) return;
+    animBusy = true;
+    el('mleft').classList.add('tomerge');
+    later(function(){
+      S.a3.merged = true; save();
+      animBusy = false;
+      renderAll();
+    }, 550);
+  });
+  el('whyCard').addEventListener('click', function(){
+    if(!S.a3.why){ S.a3.why = true; save(); renderAll(); }
+  });
+}
+
+/* ===================== 4. 활동3 ===================== */
+function html4(){
+  var four = PLBL.slice(0,4);           /* 가나다라 */
+  var perms = permutations([0,1,2,3],3); /* 24개 생성 */
+  var combos = combinations([0,1,2,3],3);/* 4묶음 생성 */
+  var st = S.a4.stage;
+  var h = ''
+  +'<h2 class="pagehead">4명 중 3명을 순서까지 뽑으면?</h2>'
+  +'<section class="card">'
+  +'  <div class="prow">'
+  +    [0,1,2,3].map(function(i){ return pav(i,56); }).join('')
+  +    (st>=1
+        ? '<div class="formula" style="margin-left:12px">'+fP(4,3)+' = '+permFactors(4,3).join(' × ')+' = '+perm(4,3)
+          +' <span class="sub" style="font-weight:600">(순서까지 '+perm(4,3)+'가지)</span>'
+          +'<span class="sub" style="display:block;font-size:15px;font-weight:600">수형도로 센 값과 같은가요?</span></div>'
+        : '')
+  +'  </div>';
+  if(st===0){
+    h += '<div class="btnrow"><button type="button" id="btnList" class="btn indigo big">순서까지 뽑기</button></div>';
+  }
+  if(st>=1){
+    h += '<div class="permgrid'+(st>=2?' dim':'')+'">'
+      + perms.map(function(p,idx){
+          return '<span class="permcard" style="animation-delay:'+(justListed? (idx*35)+'ms':'0ms')+'">'
+            + p.map(function(i){ return pav(i,22,true); }).join('') + '</span>';
+        }).join('')
+      + '</div>';
+  }
+  if(st===1){
+    h += '<div class="btnrow"><button type="button" id="btnGroup" class="btn green big">같은 3명끼리 묶기</button></div>';
+  }
+  if(st>=2){
+    h += '<div class="green-t">같은 3명끼리 한 묶음으로 합치면 → '+combos.length+'묶음</div>'
+      + '<div class="grouprow">'
+      + combos.map(function(c,gi){
+          var inner = '<div class="gtitle">묶음 '+(gi+1)+'</div>'
+            +'<div class="gballs">{ '+c.map(function(i){ return pav(i,26); }).join(' ')+' }</div>';
+          if(gi===0){
+            return '<button type="button" id="grp0" class="groupcard'+(st>=3?' gfirst':'')+'">'
+              + inner + (st===2?'<span class="taphint">탭해서 줄 세워 보기!</span>':'') + '</button>';
+          }
+          return '<div class="groupcard">'+inner+'</div>';
+        }).join('')
+      + '</div>';
+  }
+  if(st>=3){
+    var g1 = combinations([0,1,2,3],3)[0]; /* {가,나,다} */
+    var orders = permutations(g1,3);       /* 6개 생성 */
+    h += '<div class="green-t" style="color:var(--ink)">묶음 1 {'+g1.map(function(i){return PLBL[i];}).join(',')+'} 하나를 줄 세워 보면?</div>'
+      + '<div class="orderrow">'
+      + orders.map(function(o,idx){
+          return '<span class="ordercard" style="animation-delay:'+(justExpanded?(idx*70)+'ms':'0ms')+'">'
+            + o.map(function(i){ return pav(i,26,true); }).join('') + '</span>';
+        }).join('')
+      + '</div>'
+      + '<button type="button" class="discover" id="discBar">'
+      + '한 묶음에 '+orders.length+'개!&nbsp; 뽑은 사람은 3명 — 3과 6의 공통점은?'
+      + (S.a4.disc
+          ? '<div class="dans">→ &nbsp;6 = 3! = '+permFactors(3,3).join(' × ')+' , &nbsp;그래서&nbsp; '
+            +perm(4,3)+' ÷ 3! = '+comb(4,3)+'묶음 = '+fC(4,3)+'</div>'
+          : ' <span class="sub" style="font-weight:600">(탭)</span>')
+      + '</button>';
+  }
+  h += '</section>';
+  return h;
+}
+var justListed = false, justExpanded = false;
+function bind4(){
+  var bl = el('btnList');
+  if(bl) bl.addEventListener('click', function(){
+    S.a4.stage = 1; save();
+    justListed = true; renderAll(); justListed = false;
+  });
+  var bg = el('btnGroup');
+  if(bg) bg.addEventListener('click', function(){
+    S.a4.stage = 2; save(); renderAll();
+  });
+  var g0 = el('grp0');
+  if(g0) g0.addEventListener('click', function(){
+    if(S.a4.stage===2){
+      S.a4.stage = 3; save();
+      justExpanded = true; renderAll(); justExpanded = false;
+    }
+  });
+  var db = el('discBar');
+  if(db) db.addEventListener('click', function(){
+    if(!S.a4.disc){ S.a4.disc = true; save(); renderAll(); }
+  });
+}
+
+/* ===================== 5. 활동4 ===================== */
+function personSvg(i, on){
+  var c = on ? '#16a34a' : PCOL[i];
+  return '<svg width="66" height="70" viewBox="0 0 60 64" aria-hidden="true">'
+    +'<circle cx="30" cy="14" r="12" fill="'+c+'"/>'
+    +'<path d="M20 30 L40 30 L48 62 L12 62 Z" fill="'+c+'"/>'
+    +'</svg>';
+}
+function html5(){
+  var sel = S.a5.sel;
+  var opened = S.a5.opened;
+  var people = PLBL.map(function(lb,i){
+    var on = sel.indexOf(i)>=0;
+    return '<button type="button" class="personbtn'+(on?' on':'')+'" data-i="'+i+'" aria-pressed="'+on+'" aria-label="'+lb+(on?' 선택됨':'')+'">'
+      +'<span class="pchk">✓</span>'+personSvg(i,on)+'<span class="plabel">'+lb+'</span></button>';
+  }).join('');
+  var cardsInfo = [
+    {t:'줄 세워 뽑기',        f:fP(6,3)+' = '+permFactors(6,3).join(' × ')+' = '+perm(6,3)},
+    {t:'한 묶음(3개) 줄 세우기', f:'3! = '+fact(3)+' &nbsp;<span style="font-size:.85em">(활동3과 같다!)</span>'},
+    {t:'순서 지우기',          f:fC(6,3)+' = '+perm(6,3)+' ÷ '+fact(3)+' = '+comb(6,3)}
+  ];
+  var cards = cardsInfo.map(function(c,i){
+    var open = opened>i;
+    var locked = !open && i!==opened;
+    return '<section class="stagecard'+(locked?' locked':'')+'">'
+      +'<span class="numbub">'+(i+1)+'</span>'
+      +'<div class="stagebody"><div class="stitle">'+c.t+'</div>'
+      +  (open ? '<div class="formula">'+c.f+'</div>'
+               : '<button type="button" class="btn open-btn" data-card="'+i+'">열기</button>')
+      +'</div></section>';
+  }).join('');
+  var h = ''
+  +'<div class="chip green">6명 중 3명 — 인원만 늘리면?</div>'
+  +'<h2 class="pagehead">6명 중 위원 3명 뽑기</h2>'
+  +'<section class="card">'
+  +'  <div class="center sub">탭해서 3명을 골라 보세요 — 선택 <b>'+sel.length+'</b> / 3 <span class="sub">(몇 번 골라 봐도 좋아요)</span></div>'
+  +'  <div class="peoplerow">'+people+'</div>'
+  +'</section>'
+  + cards;
+  if(opened===3){
+    h += '<section class="keybanner">일반화 : &nbsp;'+fC('n','r')+' = '+fP('n','r')+' ÷ r!</section>';
+  }
+  h += ''
+  +'<section class="card explorer">'
+  +'  <div class="exhead">n·r 바꿔 탐색 <span class="sub" style="font-weight:600">(선택 — 도착 과제 회수용)</span></div>'
+  +'  <div class="exrow">'
+  +'    <label for="selN">n</label><select id="selN"></select>'
+  +'    <label for="selR">r</label><select id="selR"></select>'
+  +'    <button type="button" id="btnCalc" class="btn">모둠이 구한 값과 비교하기</button>'
+  +'  </div>'
+  +'  <div class="exout" id="exOut"></div>'
+  +'</section>';
+  return h;
+}
+function bind5(){
+  Array.prototype.forEach.call(document.querySelectorAll('.personbtn'), function(b){
+    b.addEventListener('click', function(){
+      var i = Number(b.dataset.i);
+      var idx = S.a5.sel.indexOf(i);
+      if(idx>=0){ S.a5.sel.splice(idx,1); }
+      else if(S.a5.sel.length>=3){ toast('이미 3명을 골랐어요 — 한 명을 해제하면 바꿀 수 있어요'); return; }
+      else{ S.a5.sel.push(i); }
+      save(); renderAll();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.open-btn'), function(b){
+    b.addEventListener('click', function(){
+      var i = Number(b.dataset.card);
+      if(S.a5.sel.length<3){ toast('먼저 3명을 골라 보세요'); shakeEl(b); return; }
+      if(i!==S.a5.opened){ toast('위 단계부터 순서대로 열어요'); return; }
+      S.a5.opened = i+1; save(); renderAll();
+    });
+  });
+  /* n·r 탐색기 */
+  var N_MAX = 6, R_MAX = 4;
+  var selN = el('selN'), selR = el('selR');
+  function fillN(){
+    var h='';
+    for(var n=2;n<=N_MAX;n++) h += '<option value="'+n+'"'+(n===6?' selected':'')+'>'+n+'</option>';
+    selN.innerHTML = h;
+  }
+  function fillR(){
+    var n = Number(selN.value);
+    var lim = Math.min(R_MAX, n);
+    var cur = Number(selR.value) || 3;
+    if(cur>lim) cur = lim;
+    var h='';
+    for(var r=1;r<=lim;r++) h += '<option value="'+r+'"'+(r===cur?' selected':'')+'>'+r+'</option>';
+    selR.innerHTML = h;
+  }
+  fillN(); fillR();
+  selN.addEventListener('change', fillR);
+  el('btnCalc').addEventListener('click', function(){
+    var n = Number(selN.value), r = Number(selR.value);
+    var p = perm(n,r), f = fact(r), c = comb(n,r);
+    el('exOut').innerHTML =
+      fP(n,r)+' = '+permFactors(n,r).join(' × ')+' = '+p+'<br>'
+      +'r! = '+r+'! = '+f+'<br>'
+      +fC(n,r)+' = '+p+' ÷ '+f+' = <b>'+c+'</b>';
+  });
+}
+
+/* ===================== 6. 마무리 ===================== */
+function html6(){
+  var task = S.fin.solved
+    ? '<div class="successbanner">정답! 6명 중 3명 = '+comb(6,3)+'가지 — 도착 과제 해결</div>'
+    : '<div class="taskrow">'
+      +'<input id="ansIn" inputmode="numeric" pattern="[0-9]*" placeholder="? 가지" aria-label="답 입력">'
+      +'<button type="button" id="btnAns" class="btn green">확인</button>'
+      +'</div><div class="anshint" id="ansHint" role="status"></div>';
+  return ''
+  +'<div class="chip green">순열로부터 조합의 수</div>'
+  +'<h2 class="pagehead">순열로부터 조합의 수 정리하기</h2>'
+  +'<section class="card bigformula">'
+  +'  <div class="huge">'+fC('n','r')+' &nbsp;=&nbsp; '+fP('n','r')+' &nbsp;÷&nbsp; r!</div>'
+  +'  <div class="subformula">'+fP('n','r')+' = n(n−1)…(n−r+1)</div>'
+  +'</section>'
+  +'<section class="banner greenb">하나의 조합을 r!가지로 줄 세운 것이 순열</section>'
+  +'<div class="flowchips">'
+  +'  <span class="fchip">순서까지 세기</span><span class="farrow">→</span>'
+  +'  <span class="fchip">묶음으로 합치기</span><span class="farrow">→</span>'
+  +'  <span class="fchip">÷ r! 로 일반화</span>'
+  +'</div>'
+  +'<section class="card taskcard">'
+  +'  <div class="banner-kicker" style="color:#b45309;font-weight:800">도착 과제 회수</div>'
+  +'  <div style="font-size:21px;font-weight:800;margin-top:4px">6명 중 위원 3명을 뽑는 경우의 수는?</div>'
+  +   task
+  +'</section>';
+}
+function bind6(){
+  var ba = el('btnAns');
+  if(!ba) return;
+  ba.addEventListener('click', function(){
+    var raw = el('ansIn').value.trim();
+    if(!/^[0-9]+$/.test(raw)){ toast('숫자를 입력해 주세요'); shakeEl(el('ansIn')); return; }
+    var v = Number(raw);
+    if(v === comb(6,3)){
+      S.fin.solved = true; save(); renderAll();
+    }else{
+      el('ansHint').innerHTML = '다시 세어 볼까요? '+fP(6,3)+' ÷ 3! — 활동4의 3단계를 다시 열어 봐도 좋아요.';
+      shakeEl(el('ansIn'));
+    }
+  });
+}
+
+renderAll();
+})();
+</script>
+</body>
+</html>

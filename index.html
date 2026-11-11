@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대화로 여는 조합 수업 — 수업용 웹앱</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+         background: #f1f5f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #1f2937; }
+  .wrap { max-width: 720px; width: 92%; padding: 48px 0; }
+  h1 { font-size: 28px; margin-bottom: 6px; }
+  .sub { color: #4b5563; font-size: 15px; margin-bottom: 34px; }
+  a.card { display: block; background: #fff; border: 2px solid #d1d5db; border-radius: 18px;
+           padding: 24px 26px; margin-bottom: 18px; text-decoration: none; color: inherit;
+           box-shadow: 0 2px 6px rgba(15,23,42,.08); transition: transform .12s, box-shadow .12s; }
+  a.card:active { transform: scale(.99); }
+  .tag { display: inline-block; color: #fff; font-size: 13px; font-weight: 700;
+         padding: 4px 12px; border-radius: 8px; margin-bottom: 10px; }
+  .t1 .tag { background: #2563eb; } .t2 .tag { background: #4f46e5; }
+  .card h2 { font-size: 21px; margin-bottom: 6px; }
+  .card p { color: #6b7280; font-size: 14.5px; line-height: 1.5; }
+  .balls { float: right; margin-top: 6px; }
+  .ball { display: inline-block; width: 34px; height: 34px; border-radius: 50%; color: #fff;
+          font-weight: 700; text-align: center; line-height: 34px; font-size: 16px; margin-left: 6px; }
+  .note { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 14px;
+          padding: 14px 18px; font-size: 13.5px; color: #92400e; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>대화로 여는 조합 수업 — 수업용 웹앱</h1>
+    <p class="sub">고1 공통수학1 · 경우의 수 단원 (자료집 Ⅳ-1·Ⅳ-2 수업 과정안 연계)</p>
+
+    <a class="card t1" href="iv1-johap.html">
+      <span class="balls"><span class="ball" style="background:#dc2626">①</span><span class="ball" style="background:#2563eb">④</span></span>
+      <span class="tag">Ⅳ-1 · 5차시</span>
+      <h2>공 뽑기 시뮬레이션 — 순서를 따지지 않는 셈(조합)</h2>
+      <p>도입 → 순서쌍 20 찾기 → 10묶음 → 왜 2! → 4명 중 3명 → 점프(6명 중 3명) → 정리</p>
+    </a>
+
+    <a class="card t2" href="iv2-sanghwang.html">
+      <span class="tag">Ⅳ-2 · 7차시</span>
+      <h2>협업 보드 — 이 상황은 순열일까, 조합일까?</h2>
+      <p>상황 만들기 → 분류 보드·경계사례 한 쌍 → 난이도 올리기 + AI 소재 탐색(모의)</p>
+    </a>
+
+    <div class="note">
+      인터넷 없이 작동합니다(파일을 직접 열어도 됩니다). 진행 상태는 이 기기에만 저장되며,
+      각 앱의 "처음부터" 버튼으로 지울 수 있습니다.
+    </div>
+  </div>
+</body>
+</html>
